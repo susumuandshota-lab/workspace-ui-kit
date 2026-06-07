@@ -77,6 +77,8 @@
   --shadow-opacity: var(--shadow-opacity);
   --color-shadow-color: var(--shadow-color);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-koseki-month-header: var(--koseki-month-header);
+  --color-koseki-month-header-foreground: var(--koseki-month-header-foreground);
 }
 
 :root {
@@ -114,6 +116,9 @@
   --sidebar-border: oklch(0.9039 0.0029 84.5597);
   --sidebar-ring: oklch(0.3732 0.0635 258.276);
   --destructive-foreground: oklch(1 0 0);
+  /* 月例会 Pane 1 カード見出し（green-100 / green-800 相当） */
+  --koseki-month-header: oklch(0.96 0.04 145);
+  --koseki-month-header-foreground: oklch(0.42 0.1 145);
   --font-sans:
     var(--font-inter), "Hiragino Sans", "BIZ UDPGothic", "Yu Gothic UI",
     system-ui, sans-serif;
