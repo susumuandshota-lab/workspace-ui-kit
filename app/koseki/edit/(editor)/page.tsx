@@ -1,12 +1,14 @@
 import Link from "next/link";
 
 import { logoutAction } from "@/app/koseki/edit/actions";
+import { DataSourceNotice } from "@/components/koseki/DataSourceNotice";
 import { MeetingList } from "@/components/koseki/MeetingList";
 import { Button } from "@/components/ui/button";
-import { loadMeetings } from "@/lib/koseki/meetings";
+import { getKosekiDataSource, loadMeetings } from "@/lib/koseki/meetings";
 
 export default async function KosekiEditIndexPage() {
   const meetings = await loadMeetings();
+  const dataSource = getKosekiDataSource();
 
   return (
     <div className="flex flex-col gap-4">
@@ -14,22 +16,36 @@ export default async function KosekiEditIndexPage() {
         <p className="text-sm text-muted-foreground">
           下書きを含む全回次。公開するには各回を編集して status を published にしてください。
         </p>
-        <form action={logoutAction}>
-          <Button type="submit" variant="outline" size="sm">
-            ログアウト
-          </Button>
-        </form>
+        <div className="flex flex-wrap gap-2">
+          {dataSource === "database" ? (
+            <Button render={<Link href="/koseki/edit/new" />} size="sm">
+              新規作成
+            </Button>
+          ) : null}
+          <form action={logoutAction}>
+            <Button type="submit" variant="outline" size="sm">
+              ログアウト
+            </Button>
+          </form>
+        </div>
       </div>
+      <DataSourceNotice />
       <MeetingList
         meetings={meetings}
         basePath="/koseki/edit"
         showStatus
-        emptyMessage="月次ファイルがありません。_template.md を複製して追加してください。"
+        emptyMessage={
+          dataSource === "database"
+            ? "月次がありません。「新規作成」から追加してください。"
+            : "月次ファイルがありません。_template.md を複製して追加してください。"
+        }
       />
-      <p className="mx-auto w-full max-w-3xl px-4 pb-8 text-sm text-muted-foreground">
-        新規作成: <code className="text-xs">content/koseki-monthly-meeting/</code> に{" "}
-        <code className="text-xs">_template.md</code> を複製してから、ここに表示されます。
-      </p>
+      {dataSource === "file" ? (
+        <p className="mx-auto w-full max-w-3xl px-4 pb-8 text-sm text-muted-foreground">
+          新規作成: <code className="text-xs">content/koseki-monthly-meeting/</code> に{" "}
+          <code className="text-xs">_template.md</code> を複製してから、ここに表示されます。
+        </p>
+      ) : null}
       <div className="mx-auto w-full max-w-3xl px-4 pb-8">
         <Button variant="link" render={<Link href="/koseki" />}>
           公開アーカイブを見る

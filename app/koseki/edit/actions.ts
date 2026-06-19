@@ -10,7 +10,7 @@ import {
   KOSEKI_EDITOR_COOKIE,
 } from "@/lib/koseki/auth";
 import { findUnsafeMaterialLinks } from "@/lib/koseki/markdown";
-import { loadMeeting, saveMeeting } from "@/lib/koseki/meetings";
+import { getKosekiDataSource, loadMeeting, saveMeeting } from "@/lib/koseki/meetings";
 import {
   defaultContentHeadings,
   meetingEditFormSchema,
@@ -81,8 +81,28 @@ export async function saveMeetingAction(
 
   const sections: MeetingSections = { ...content, 資料: materials };
 
+  const isCreate = String(formData.get("isCreate") ?? "") === "1";
+
+  if (isCreate && getKosekiDataSource() !== "database") {
+    return {
+      ok: false,
+      message:
+        "新規作成はデータベースモードでのみ利用できます。ローカルでは _template.md を複製してください。",
+    };
+  }
+
   try {
-    await loadMeeting(slug);
+    if (isCreate) {
+      try {
+        await loadMeeting(slug);
+        return { ok: false, message: "同じ slug の回次がすでに存在します。" };
+      } catch {
+        // 新規作成として続行
+      }
+    } else {
+      await loadMeeting(slug);
+    }
+
     await saveMeeting({
       slug,
       frontmatter: {
@@ -96,8 +116,8 @@ export async function saveMeetingAction(
     revalidatePath("/koseki");
     revalidatePath("/koseki/edit");
     revalidatePath(`/koseki/edit/${slug}`);
-    return { ok: true, message: "保存しました。" };
+    return { ok: true, message: isCreate ? "作成しました。" : "保存しました。" };
   } catch {
-    return { ok: false, message: "保存に失敗しました。" };
+    return { ok: false, message: isCreate ? "作成に失敗しました。" : "保存に失敗しました。" };
   }
 }

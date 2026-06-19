@@ -47,8 +47,13 @@ export function getMaterialsContent(sections: MeetingSections): string {
     .join("\n\n");
 }
 
+export const meetingSlugSchema = z
+  .string()
+  .min(1)
+  .regex(/^[0-9]{4}-[0-9]{2}_[^\s/\\]+$/, "slug は YYYY-MM_テーマ 形式で入力してください");
+
 export const meetingEditFormSchema = meetingFrontmatterSchema.extend({
-  slug: z.string().min(1),
+  slug: meetingSlugSchema,
   contentSections: z.record(z.string(), z.string()),
   materials: z.string(),
 });
