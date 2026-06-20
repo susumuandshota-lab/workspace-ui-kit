@@ -5,6 +5,7 @@ import {
   saveMeetingToDb,
 } from "@/lib/koseki/db/meetings";
 import {
+  exportMeetingsToFiles,
   loadMeetingFromFile,
   loadMeetingsFromFiles,
   saveMeetingToFile,
@@ -38,10 +39,36 @@ export async function loadMeetings(
   return loadMeetingsFromFiles(options);
 }
 
-export async function saveMeeting(record: MeetingRecord): Promise<void> {
+export type SaveMeetingResult = {
+  mirroredToFile: boolean;
+};
+
+export async function mirrorMeetingToFile(record: MeetingRecord): Promise<boolean> {
+  try {
+    await saveMeetingToFile(record);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function saveMeeting(record: MeetingRecord): Promise<SaveMeetingResult> {
   if (getKosekiDataSource() === "database") {
     await saveMeetingToDb(record);
-    return;
+    const mirroredToFile = await mirrorMeetingToFile(record);
+    return { mirroredToFile };
   }
   await saveMeetingToFile(record);
+  return { mirroredToFile: true };
+}
+
+/** Neon の内容を Git 用 Markdown に一括書き出し（運営コア向け） */
+export async function exportMeetingsFromDatabase(): Promise<number> {
+  if (!isDatabaseConfigured()) {
+    throw new Error("DATABASE_URL is not configured");
+  }
+
+  const records = await loadMeetingsFromDb();
+  await exportMeetingsToFiles(records);
+  return records.length;
 }

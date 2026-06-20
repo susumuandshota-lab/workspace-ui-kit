@@ -37,13 +37,14 @@ export default async function KosekiEditIndexPage() {
         emptyMessage={
           dataSource === "database"
             ? "月次がありません。「新規作成」から追加してください。"
-            : "月次ファイルがありません。_template.md を複製して追加してください。"
+            : "月次がありません。データベースモードで運用してください。"
         }
       />
-      {dataSource === "file" ? (
-        <p className="mx-auto w-full max-w-3xl px-4 pb-8 text-sm text-muted-foreground">
-          新規作成: <code className="text-xs">content/koseki-monthly-meeting/</code> に{" "}
-          <code className="text-xs">_template.md</code> を複製してから、ここに表示されます。
+      {dataSource === "database" ? (
+        <p className="mx-auto w-full max-w-3xl px-4 pb-4 text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">運営コア向け:</span> 書記の保存後、{" "}
+          <code className="text-xs">npm run db:export</code> で Markdown を更新し、Git に commit
+          してください（本番サーバーで編集した場合は必須）。
         </p>
       ) : null}
       <div className="mx-auto w-full max-w-3xl px-4 pb-8">

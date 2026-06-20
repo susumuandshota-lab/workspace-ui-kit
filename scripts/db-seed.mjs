@@ -4,6 +4,10 @@ import { fileURLToPath } from "node:url";
 
 import { neon } from "@neondatabase/serverless";
 
+import { loadEnvLocal } from "./load-env-local.mjs";
+
+loadEnvLocal();
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 const meetingsDir = path.join(root, "content", "koseki-monthly-meeting");
@@ -119,6 +123,16 @@ async function upsertMeeting(sql, slug, frontmatter, sections) {
   }
 }
 
+async function removeOrphanMeetings(sql, fileSlugs) {
+  const rows = await sql`SELECT slug FROM meetings`;
+  const orphans = rows.filter((row) => !fileSlugs.includes(row.slug));
+
+  for (const { slug } of orphans) {
+    await sql`DELETE FROM meetings WHERE slug = ${slug}`;
+    console.log(`  - removed from DB (no markdown file): ${slug}`);
+  }
+}
+
 async function main() {
   const url = getDatabaseUrl();
   if (!url) {
@@ -132,6 +146,12 @@ async function main() {
   );
 
   console.log(`Seeding ${files.length} markdown file(s) into Neon...`);
+
+  if (process.argv.includes("--prune")) {
+    await removeOrphanMeetings(sql, files.map((name) => name.replace(/\.md$/, "")));
+  } else {
+    console.log("  (DB のみにある回次は削除しません。初回復旧時は npm run db:seed -- --prune)");
+  }
 
   for (const filename of files) {
     const slug = filename.replace(/\.md$/, "");

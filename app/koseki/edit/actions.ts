@@ -87,7 +87,7 @@ export async function saveMeetingAction(
     return {
       ok: false,
       message:
-        "新規作成はデータベースモードでのみ利用できます。ローカルでは _template.md を複製してください。",
+        "新規作成はデータベースモードでのみ利用できます。運営コアに連絡してください。",
     };
   }
 
@@ -103,7 +103,7 @@ export async function saveMeetingAction(
       await loadMeeting(slug);
     }
 
-    await saveMeeting({
+    const { mirroredToFile } = await saveMeeting({
       slug,
       frontmatter: {
         status: frontmatter.status,
@@ -116,7 +116,13 @@ export async function saveMeetingAction(
     revalidatePath("/koseki");
     revalidatePath("/koseki/edit");
     revalidatePath(`/koseki/edit/${slug}`);
-    return { ok: true, message: isCreate ? "作成しました。" : "保存しました。" };
+
+    const actionLabel = isCreate ? "作成" : "保存";
+    const gitNote = mirroredToFile
+      ? " Git 用 Markdown にも反映しました。"
+      : " 運営コアは npm run db:export で Git に反映してください。";
+
+    return { ok: true, message: `${actionLabel}しました。${gitNote}` };
   } catch {
     return { ok: false, message: isCreate ? "作成に失敗しました。" : "保存に失敗しました。" };
   }

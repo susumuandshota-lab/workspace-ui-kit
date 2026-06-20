@@ -50,3 +50,24 @@ export async function saveMeetingToFile(record: MeetingRecord): Promise<void> {
   const content = serializeMeetingMarkdown(record);
   await fs.writeFile(filePath, content, "utf8");
 }
+
+export async function removeMeetingFile(slug: string): Promise<void> {
+  const filePath = path.join(MEETINGS_DIR, `${slug}.md`);
+  await fs.unlink(filePath);
+}
+
+/** DB の全回次を Markdown に書き出し、DB にないファイルは削除する */
+export async function exportMeetingsToFiles(records: MeetingRecord[]): Promise<void> {
+  const slugs = new Set(records.map((record) => record.slug));
+  const existingSlugs = await listMeetingSlugs();
+
+  for (const slug of existingSlugs) {
+    if (!slugs.has(slug)) {
+      await removeMeetingFile(slug);
+    }
+  }
+
+  for (const record of records) {
+    await saveMeetingToFile(record);
+  }
+}

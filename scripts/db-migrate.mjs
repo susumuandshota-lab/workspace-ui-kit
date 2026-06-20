@@ -4,6 +4,10 @@ import { fileURLToPath } from "node:url";
 
 import { neon } from "@neondatabase/serverless";
 
+import { loadEnvLocal } from "./load-env-local.mjs";
+
+loadEnvLocal();
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 
@@ -13,6 +17,31 @@ function getDatabaseUrl() {
     process.env.DATABASE_URL ??
     process.env.POSTGRES_URL
   );
+}
+
+function splitSqlStatements(migration) {
+  const statements = [];
+  let current = "";
+  let inDollarQuote = false;
+
+  for (const line of migration.split(/\r?\n/)) {
+    current += `${line}\n`;
+
+    if (line.includes("$$")) {
+      inDollarQuote = !inDollarQuote;
+    }
+
+    if (!inDollarQuote && line.trim().endsWith(";")) {
+      const statement = current.trim();
+      if (statement) statements.push(statement);
+      current = "";
+    }
+  }
+
+  const trailing = current.trim();
+  if (trailing) statements.push(trailing);
+
+  return statements;
 }
 
 async function main() {
@@ -25,9 +54,12 @@ async function main() {
   const sqlPath = path.join(root, "drizzle", "0000_init.sql");
   const migration = readFileSync(sqlPath, "utf8");
   const sql = neon(url);
+  const statements = splitSqlStatements(migration);
 
   console.log("Applying migration:", sqlPath);
-  await sql.query(migration);
+  for (const statement of statements) {
+    await sql.query(statement);
+  }
   console.log("Migration complete.");
 }
 
