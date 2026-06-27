@@ -16,6 +16,13 @@ npm run dev
 
 ![戸籍研究月例会アーカイブ：左から「開催時期」「次第」「内容」「資料」の4ペイン構造](docs/screenshot-koseki.png)
 
+**公開 URL**
+
+| | |
+|---|---|
+| 会員向けアプリ | https://workspace-ui-kit-bice.vercel.app/koseki |
+| 仕組みの図解 | https://diagram-koseki-tool.surge.sh |
+
 ## 構成
 
 ### 技術スタック

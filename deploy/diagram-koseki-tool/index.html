@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow">
+  <meta property="og:title" content="戸籍研究月例会ツールの仕組み">
+  <meta property="og:description" content="会員向け4ペインアーカイブと書記向け編集機能。Neon・Git・Googleドライブに何を保存するかを図解します。">
+  <meta property="og:type" content="article">
+  <title>戸籍研究月例会ツールの仕組み</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23FFFFFF'/><rect x='8' y='8' width='84' height='84' rx='14' fill='none' stroke='%233B82F6' stroke-width='4'/><circle cx='32' cy='40' r='10' fill='%233B82F6' opacity='0.8'/><circle cx='68' cy='40' r='10' fill='%2360A5FA' opacity='0.8'/><rect x='25' y='62' width='50' height='6' rx='3' fill='%2394A3B8' opacity='0.6'/><rect x='30' y='74' width='40' height='6' rx='3' fill='%2394A3B8' opacity='0.3'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ads: {
+              bg: '#FFFFFF',
+              surface: '#F8FAFC',
+              hover: '#F1F5F9',
+              border: '#E2E8F0',
+              accent: '#3B82F6',
+              'accent-light': '#2563EB',
+              text: '#1E293B',
+              muted: '#64748B',
+              dim: '#94A3B8',
+              positive: '#10B981',
+              negative: '#EF4444',
+              warning: '#F59E0B',
+            }
+          },
+          fontFamily: {
+            sans: ['"Noto Sans JP"', '"Hiragino Sans"', '"Hiragino Kaku Gothic ProN"', '"Yu Gothic UI"', '"Meiryo"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      body { border-top: none !important; }
+      .rounded-xl { break-inside: avoid; }
+      .md\:flex-row { flex-direction: row !important; }
+      .md\:hidden { display: none !important; }
+      .hidden.md\:block { display: block !important; }
+      .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+      .sm\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+      .md\:mb-20 { margin-bottom: 5rem !important; }
+      .md\:py-16 { padding-top: 4rem !important; padding-bottom: 4rem !important; }
+      .bg-clip-text.text-transparent {
+        -webkit-background-clip: initial !important;
+        background-clip: initial !important;
+        color: #2563EB !important;
+        -webkit-text-fill-color: #2563EB !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-ads-bg text-slate-600 antialiased leading-relaxed border-t-4 border-ads-accent">
+  <div class="no-print max-w-3xl mx-auto px-5 pt-2 flex justify-end">
+    <button onclick="window.print()" class="flex items-center gap-1.5 text-xs text-ads-dim hover:text-ads-accent transition-colors cursor-pointer">
+      <i data-lucide="download" class="w-3.5 h-3.5"></i>
+      PDF
+    </button>
+  </div>
+  <main class="max-w-3xl mx-auto px-5 py-10 md:py-16">
+
+<!-- HERO -->
+<div class="text-center mb-8 md:mb-10">
+  <div class="inline-flex items-center gap-2 bg-ads-accent/10 text-ads-accent-light px-4 py-1.5 rounded-full text-sm font-medium mb-6">
+    <i data-lucide="book-open" class="w-4 h-4"></i>
+    開発ツール
+  </div>
+  <h1 class="text-3xl md:text-5xl font-black text-slate-900 tracking-tight mb-6">
+    <span class="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">戸籍研究月例会</span>ツールの仕組み
+  </h1>
+  <p class="text-lg text-ads-muted max-w-xl mx-auto leading-relaxed">
+    月例会の記録を、会員が読みやすく・書記が更新しやすく。<br>
+    ひとことで言うと ──
+  </p>
+</div>
+
+<!-- ONE-PAGE SUMMARY -->
+<div class="bg-ads-surface border border-ads-border rounded-2xl p-6 md:p-10 mb-6">
+  <div class="text-center mb-8">
+    <p class="text-xl md:text-2xl font-black text-slate-900 mb-2">
+      <span class="text-ads-accent-light">Neon</span>を正本にした<br>4ペインの月次アーカイブ
+    </p>
+    <p class="text-sm text-ads-muted">テキスト記録は DB に保存、Git はバックアップ。PDF原本はクラウド</p>
+  </div>
+
+  <div class="flex flex-col md:flex-row items-stretch justify-center gap-3 md:gap-2 mb-8">
+    <div class="flex-1 bg-white border border-ads-border rounded-xl p-4 text-center">
+      <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-2">
+        <i data-lucide="file-text" class="w-6 h-6 text-emerald-600"></i>
+      </div>
+      <div class="font-bold text-slate-900 text-sm">Markdown 1ファイル</div>
+      <div class="text-[11px] text-ads-muted">1か月＝1回分</div>
+    </div>
+    <div class="flex items-center justify-center md:w-10">
+      <i data-lucide="arrow-right" class="w-5 h-5 text-ads-accent hidden md:block"></i>
+      <i data-lucide="arrow-down" class="w-5 h-5 text-ads-accent md:hidden"></i>
+    </div>
+    <div class="flex-1 bg-ads-accent/5 border-2 border-ads-accent/20 rounded-xl p-4 text-center">
+      <div class="w-12 h-12 rounded-xl bg-ads-accent/15 border border-ads-accent/30 flex items-center justify-center mx-auto mb-2">
+        <i data-lucide="layout-panel-left" class="w-6 h-6 text-ads-accent-light"></i>
+      </div>
+      <div class="font-bold text-ads-accent-light text-sm">4ペイン UI</div>
+      <div class="text-[11px] text-ads-muted">月 → 次第 → 内容 + 資料</div>
+    </div>
+    <div class="flex items-center justify-center md:w-10">
+      <i data-lucide="arrow-right" class="w-5 h-5 text-ads-accent hidden md:block"></i>
+      <i data-lucide="arrow-down" class="w-5 h-5 text-ads-accent md:hidden"></i>
+    </div>
+    <div class="flex-1 bg-white border border-ads-border rounded-xl p-4 text-center">
+      <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-2">
+        <i data-lucide="users" class="w-6 h-6 text-blue-600"></i>
+      </div>
+      <div class="font-bold text-slate-900 text-sm">会員が閲覧</div>
+      <div class="text-[11px] text-ads-muted">published のみ公開</div>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-4 mb-6">
+    <div class="flex-1 border-t border-ads-border/50"></div>
+    <div class="text-[11px] text-ads-dim font-medium">3つの保存先</div>
+    <div class="flex-1 border-t border-ads-border/50"></div>
+  </div>
+
+  <div class="grid md:grid-cols-3 gap-3">
+    <div class="bg-ads-accent/5 border-2 border-ads-accent/20 rounded-xl p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <i data-lucide="database" class="w-4 h-4 text-ads-accent-light"></i>
+        <span class="font-bold text-slate-900 text-sm">Neon（PostgreSQL）</span>
+      </div>
+      <p class="text-xs text-ads-muted leading-relaxed"><strong class="text-slate-700">編集の正本</strong>。書記が Web から保存したテキスト記録・公開状態</p>
+    </div>
+    <div class="bg-white border border-ads-border rounded-xl p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <i data-lucide="git-branch" class="w-4 h-4 text-ads-accent"></i>
+        <span class="font-bold text-slate-900 text-sm">Git リポジトリ</span>
+      </div>
+      <p class="text-xs text-ads-muted leading-relaxed"><code class="font-mono text-[10px]">content/koseki-monthly-meeting/*.md</code>。DB から <code class="font-mono text-[10px]">db:export</code> した<strong class="text-slate-700">バックアップ</strong></p>
+    </div>
+    <div class="bg-white border border-ads-border rounded-xl p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <i data-lucide="cloud" class="w-4 h-4 text-amber-600"></i>
+        <span class="font-bold text-slate-900 text-sm">Google ドライブ</span>
+      </div>
+      <p class="text-xs text-ads-muted leading-relaxed">PDF・スキャンなど<strong class="text-slate-700">原本ファイル</strong>。DB には URL のみ保存</p>
+    </div>
+  </div>
+</div>
+
+<p class="text-center text-ads-muted mb-10 md:mb-12">
+  ここから先で、保存先・画面構成・データの流れ・運用フローをひとつずつ解説します。
+</p>
+
+
+<!-- SCREEN CAPTURE -->
+<section class="mb-16 md:mb-20">
+  <div class="border border-ads-border rounded-2xl overflow-hidden shadow-sm bg-white">
+    <div class="bg-ads-surface border-b border-ads-border px-4 py-2.5 flex items-center gap-2">
+      <i data-lucide="monitor" class="w-4 h-4 text-ads-accent"></i>
+      <span class="text-xs font-medium text-slate-700">会員向けアーカイブ画面（/koseki）</span>
+    </div>
+    <img src="koseki-screenshot.png" alt="戸籍研究月例会ツールの4ペイン画面。左から開催時期・次第・内容・資料" class="w-full h-auto block">
+  </div>
+  <p class="text-center text-xs text-ads-dim mt-3">実際の画面（2026年6月回を表示）</p>
+</section>
+
+
+<!-- SECTION: 保存するデータと保存先 -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+      <i data-lucide="hard-drive" class="w-5 h-5 text-indigo-600"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-900">保存するデータと保存先</h2>
+  </div>
+
+  <p class="text-sm text-ads-muted mb-6 leading-relaxed">
+    1か月分の記録は、<strong class="text-slate-700">テキスト（DB / Git）</strong>と<strong class="text-slate-700">原本ファイル（ドライブ）</strong>に分かれて保存します。書記は Web 編集画面から保存するだけで、Git や Markdown ファイルを直接触りません。
+  </p>
+
+  <!-- 保存するデータ -->
+  <div class="mb-6">
+    <h3 class="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+      <i data-lucide="file-box" class="w-4 h-4 text-indigo-600"></i>
+      保存するデータ（1回分）
+    </h3>
+    <div class="bg-white border border-ads-border rounded-xl overflow-hidden">
+      <div class="grid grid-cols-2 bg-ads-surface border-b border-ads-border text-xs font-bold text-slate-700">
+        <div class="px-4 py-2.5">データ</div>
+        <div class="px-4 py-2.5 border-l border-ads-border">内容の例</div>
+      </div>
+      <div class="divide-y divide-ads-border text-xs">
+        <div class="grid grid-cols-2">
+          <div class="px-4 py-2.5 font-medium text-slate-800">回次メタ情報</div>
+          <div class="px-4 py-2.5 border-l border-ads-border text-ads-muted">slug・開催日（heldOn）・テーマ・folderSlug・公開状態（draft / published）</div>
+        </div>
+        <div class="grid grid-cols-2">
+          <div class="px-4 py-2.5 font-medium text-slate-800">次第ごとの本文</div>
+          <div class="px-4 py-2.5 border-l border-ads-border text-ads-muted">事務連絡・協議・研修・その他（箇条書きテキスト）</div>
+        </div>
+        <div class="grid grid-cols-2">
+          <div class="px-4 py-2.5 font-medium text-slate-800">資料リンク</div>
+          <div class="px-4 py-2.5 border-l border-ads-border text-ads-muted">表示名 + URL（例: 申し立て様式 → Google ドライブ）</div>
+        </div>
+        <div class="grid grid-cols-2">
+          <div class="px-4 py-2.5 font-medium text-slate-800">原本ファイル</div>
+          <div class="px-4 py-2.5 border-l border-ads-border text-ads-muted">PDF・スキャン画像など（DB には載せず、ドライブに置く）</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 保存先マップ -->
+  <div class="mb-6">
+    <h3 class="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+      <i data-lucide="map-pin" class="w-4 h-4 text-indigo-600"></i>
+      どこに保存するか
+    </h3>
+    <div class="space-y-3">
+      <div class="bg-ads-accent/5 border-2 border-ads-accent/20 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-lg bg-ads-accent/15 flex items-center justify-center shrink-0">
+            <i data-lucide="database" class="w-4 h-4 text-ads-accent-light"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+              <span class="font-bold text-slate-900 text-sm">Neon（PostgreSQL）</span>
+              <span class="text-[10px] font-bold bg-ads-accent text-white px-2 py-0.5 rounded-full">正本</span>
+            </div>
+            <p class="text-xs text-ads-muted leading-relaxed mb-2">書記が <code class="font-mono text-[10px]">/koseki/edit</code> から保存した内容の<strong class="text-slate-700">すべて</strong>（メタ情報・本文・資料 URL・draft/published）</p>
+            <div class="bg-white/80 border border-ads-border rounded-lg px-3 py-2 font-mono text-[10px] text-ads-muted">meetings / meeting_sections / meeting_materials</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-center"><i data-lucide="arrow-down" class="w-4 h-4 text-ads-dim"></i></div>
+
+      <div class="bg-white border border-ads-border rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+            <i data-lucide="git-branch" class="w-4 h-4 text-emerald-600"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+              <span class="font-bold text-slate-900 text-sm">Git リポジトリ</span>
+              <span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">バックアップ</span>
+            </div>
+            <p class="text-xs text-ads-muted leading-relaxed mb-2">運営コアが <code class="font-mono text-[10px]">npm run db:export</code> で Neon から書き出した Markdown。1か月＝1ファイル</p>
+            <div class="bg-ads-surface border border-ads-border rounded-lg px-3 py-2 font-mono text-[10px] text-ads-muted">content/koseki-monthly-meeting/2026-06_振り仮名.md</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-center"><i data-lucide="arrow-down" class="w-4 h-4 text-ads-dim"></i></div>
+
+      <div class="bg-white border border-ads-border rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+            <i data-lucide="cloud" class="w-4 h-4 text-amber-600"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+              <span class="font-bold text-slate-900 text-sm">Google ドライブ</span>
+              <span class="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">原本</span>
+            </div>
+            <p class="text-xs text-ads-muted leading-relaxed mb-2">PDF・配布資料などの実ファイル。編集画面の「資料」欄に URL を貼ると、Neon にリンクだけ保存される</p>
+            <div class="bg-slate-900 rounded-lg p-3 font-mono text-[10px] text-slate-300 leading-relaxed">
+              <div>月例会アーカイブ/</div>
+              <div class="pl-3">└── 2026-06_振り仮名/</div>
+              <div class="pl-6">└── 01_資料/ <span class="text-slate-500">← 申し立て様式.pdf など</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 役割分担 -->
+  <div class="grid md:grid-cols-3 gap-3">
+    <div class="bg-ads-surface border border-ads-border rounded-xl p-4 text-center">
+      <div class="text-xs font-bold text-amber-700 mb-1">書記</div>
+      <p class="text-[11px] text-ads-muted">Web 編集画面で保存<br>→ Neon に書き込み</p>
+    </div>
+    <div class="bg-ads-surface border border-ads-border rounded-xl p-4 text-center">
+      <div class="text-xs font-bold text-emerald-700 mb-1">運営コア</div>
+      <p class="text-[11px] text-ads-muted">db:export → Git commit<br>→ バックアップを残す</p>
+    </div>
+    <div class="bg-ads-surface border border-ads-border rounded-xl p-4 text-center">
+      <div class="text-xs font-bold text-blue-700 mb-1">会員</div>
+      <p class="text-[11px] text-ads-muted">/koseki で閲覧<br>→ Neon から published のみ表示</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- SECTION 1: 誰が使う？ -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+      <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-900">誰が使う？ — 2つのペルソナ</h2>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="bg-white border border-ads-border rounded-xl overflow-hidden">
+      <div class="bg-blue-500/10 border-b border-blue-500/15 px-5 py-3 flex items-center gap-2">
+        <i data-lucide="eye" class="w-4 h-4 text-blue-600"></i>
+        <span class="font-bold text-slate-900">会員（閲覧者）</span>
+      </div>
+      <div class="p-5 space-y-3 text-sm">
+        <p>過去の月例会を振り返りたい研究会メンバー</p>
+        <div class="bg-ads-surface rounded-lg px-3 py-2 text-xs font-mono text-ads-accent-light">/koseki</div>
+        <ul class="space-y-1.5 text-xs text-ads-muted">
+          <li class="flex items-start gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-ads-positive mt-0.5 shrink-0"></i>公開済み（published）の回次だけ見える</li>
+          <li class="flex items-start gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-ads-positive mt-0.5 shrink-0"></i>4ペインで月を選び、次第・内容・資料を読む</li>
+          <li class="flex items-start gap-2"><i data-lucide="x" class="w-3.5 h-3.5 text-ads-dim mt-0.5 shrink-0"></i>編集・下書き閲覧は不可</li>
+        </ul>
+      </div>
+    </div>
+    <div class="bg-white border border-ads-border rounded-xl overflow-hidden">
+      <div class="bg-amber-500/10 border-b border-amber-500/15 px-5 py-3 flex items-center gap-2">
+        <i data-lucide="pencil" class="w-4 h-4 text-amber-600"></i>
+        <span class="font-bold text-slate-900">書記・運営（編集者）</span>
+      </div>
+      <div class="p-5 space-y-3 text-sm">
+        <p>開催記録を清書し、会員向けに公開する担当者</p>
+        <div class="bg-ads-surface rounded-lg px-3 py-2 text-xs font-mono text-ads-accent-light">/koseki/edit</div>
+        <ul class="space-y-1.5 text-xs text-ads-muted">
+          <li class="flex items-start gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-ads-positive mt-0.5 shrink-0"></i>パスワード + Cookie で認証</li>
+          <li class="flex items-start gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-ads-positive mt-0.5 shrink-0"></i>下書き（draft）の作成・清書</li>
+          <li class="flex items-start gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-ads-positive mt-0.5 shrink-0"></i>status を published にして公開</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- SECTION 1.5: 解決する課題 -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center">
+      <i data-lucide="target" class="w-5 h-5 text-rose-600"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-900">解決する課題</h2>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="bg-white border border-ads-border rounded-xl p-5">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
+          <i data-lucide="user-x" class="w-5 h-5 text-violet-600"></i>
+        </div>
+        <h3 class="font-bold text-slate-900">当日の欠席者</h3>
+      </div>
+      <p class="text-sm text-ads-muted leading-relaxed">
+        月例会に参加できなくても、清書された記録と資料リンクから<strong class="text-slate-700">その回の内容を把握</strong>できる。事務連絡・協議・研修の次第ごとに読める。
+      </p>
+    </div>
+    <div class="bg-white border border-ads-border rounded-xl p-5">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center shrink-0">
+          <i data-lucide="history" class="w-5 h-5 text-teal-600"></i>
+        </div>
+        <h3 class="font-bold text-slate-900">出席者・会員</h3>
+      </div>
+      <p class="text-sm text-ads-muted leading-relaxed">
+        過去の回次を月ごとに選び、<strong class="text-slate-700">研修・協議の内容をいつでも確認</strong>できる。宿題や次回予定もあわせて振り返れる。
+      </p>
+    </div>
+  </div>
+</section>
+
+
+<!-- SECTION 2: 4ペイン UI -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+      <i data-lucide="layout-panel-left" class="w-5 h-5 text-emerald-600"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-900">画面の中心 — 4ペイン UI</h2>
+  </div>
+
+  <p class="text-sm text-ads-muted mb-6 leading-relaxed">
+    左から右へ<strong class="text-slate-700">「いつ → 何の話 → 本文 → 資料」</strong>の順で選んで読みます。ペイン1・2を選ぶと、ペイン3・4の内容が連動して切り替わります。
+  </p>
+
+  <!-- Browser mockup -->
+  <div class="border border-ads-border rounded-xl overflow-hidden shadow-sm mb-6">
+    <div class="bg-slate-100 border-b border-ads-border px-4 py-2.5 flex items-center gap-3">
+      <div class="flex gap-1.5">
+        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+        <div class="w-3 h-3 rounded-full bg-amber-400"></div>
+        <div class="w-3 h-3 rounded-full bg-emerald-400"></div>
+      </div>
+      <div class="flex-1 bg-white border border-ads-border rounded-md px-3 py-1 text-[11px] text-ads-dim font-mono">localhost:3000/koseki</div>
+    </div>
+
+    <!-- Header -->
+    <div class="bg-white border-b border-ads-border px-4 py-3 flex items-center justify-between">
+      <div>
+        <div class="font-bold text-slate-900 text-sm">戸籍研究月例会</div>
+        <div class="text-[10px] text-ads-muted">会員向けアーカイブ</div>
+      </div>
+      <div class="border border-ads-border rounded-md px-2 py-0.5 text-[10px] text-slate-600">編集</div>
+    </div>
+
+    <!-- 4 panes -->
+    <div class="flex h-52 md:h-56 text-[9px] md:text-[10px]">
+      <!-- Pane 1 -->
+      <div class="w-[18%] shrink-0 border-r border-ads-border bg-slate-50 flex flex-col">
+        <div class="border-b border-ads-border px-2 py-1.5 font-bold text-slate-800">開催時期</div>
+        <div class="p-1.5 space-y-1 flex-1">
+          <div class="rounded bg-emerald-100 border border-emerald-200 px-2 py-1 font-semibold text-emerald-800 ring-2 ring-emerald-400">2026_05</div>
+          <div class="rounded bg-white border border-ads-border px-2 py-1 text-ads-muted">2026_04</div>
+        </div>
+      </div>
+      <!-- Pane 2 -->
+      <div class="w-[18%] shrink-0 border-r border-ads-border bg-white flex flex-col">
+        <div class="border-b border-ads-border px-2 py-1.5">
+          <div class="font-bold text-slate-800">次第</div>
+          <div class="text-ads-dim">総務</div>
+        </div>
+        <div class="p-1 space-y-0.5 flex-1">
+          <div class="px-1.5 py-1 text-ads-muted">事務連絡</div>
+          <div class="px-1.5 py-1 bg-slate-100 rounded font-medium text-slate-800">協議</div>
+          <div class="px-1.5 py-1 text-ads-muted">研修</div>
+          <div class="px-1.5 py-1 text-ads-muted">その他</div>
+        </div>
+      </div>
+      <!-- Pane 3 -->
+      <div class="flex-1 min-w-0 border-r border-ads-border bg-slate-50/50 flex flex-col">
+        <div class="border-b border-ads-border px-3 py-1.5">
+          <div class="font-bold text-slate-800">内容</div>
+          <div class="flex items-center gap-1 mt-0.5">
+            <span class="font-medium text-slate-700">協議</span>
+            <span class="bg-slate-200 rounded px-1 text-[8px]">2026-05-21</span>
+          </div>
+        </div>
+        <div class="px-3 py-2 space-y-1 text-ads-muted flex-1">
+          <div class="flex gap-1"><span class="text-ads-dim">•</span>除籍の読み方と現行戸籍の違い</div>
+          <div class="flex gap-1"><span class="text-ads-dim">•</span>名寄せ帳への記載注意</div>
+        </div>
+      </div>
+      <!-- Pane 4 -->
+      <div class="w-[22%] shrink-0 bg-white flex flex-col">
+        <div class="border-b border-ads-border px-2 py-1.5 font-bold text-slate-800">資料</div>
+        <div class="p-2 space-y-1 flex-1">
+          <div class="text-ads-accent-light underline">配布資料_除籍読み方.pdf</div>
+          <div class="text-ads-accent-light underline">参考_法令抜粋.pdf</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pane legend -->
+  <div class="grid sm:grid-cols-2 gap-3">
+    <div class="flex gap-3 bg-ads-surface border border-ads-border rounded-xl p-4">
+      <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0 font-black text-emerald-600 text-sm">1</div>
+      <div>
+        <div class="font-bold text-slate-900 text-sm">開催時期</div>
+        <p class="text-xs text-ads-muted mt-0.5">公開済みの月一覧。yyyy_mm 形式で表示</p>
+      </div>
+    </div>
+    <div class="flex gap-3 bg-ads-surface border border-ads-border rounded-xl p-4">
+      <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0 font-black text-blue-600 text-sm">2</div>
+      <div>
+        <div class="font-bold text-slate-900 text-sm">次第</div>
+        <p class="text-xs text-ads-muted mt-0.5">事務連絡・協議・研修・その他の見出し一覧</p>
+      </div>
+    </div>
+    <div class="flex gap-3 bg-ads-surface border border-ads-border rounded-xl p-4">
+      <div class="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0 font-black text-violet-600 text-sm">3</div>
+      <div>
+        <div class="font-bold text-slate-900 text-sm">内容</div>
+        <p class="text-xs text-ads-muted mt-0.5">選んだ見出しの本文（箇条書き or 段落）</p>
+      </div>
+    </div>
+    <div class="flex gap-3 bg-ads-surface border border-ads-border rounded-xl p-4">
+      <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0 font-black text-amber-600 text-sm">4</div>
+      <div>
+        <div class="font-bold text-slate-900 text-sm">資料</div>
+        <p class="text-xs text-ads-muted mt-0.5">常に表示。Markdown 内の [表示名](URL) をリンク化</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- SECTION 3: Markdown 構造 -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
+      <i data-lucide="file-code" class="w-5 h-5 text-violet-600"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-900">バックアップの形 — 1ファイル＝1か月</h2>
+  </div>
+
+  <p class="text-sm text-ads-muted mb-6">
+    Neon から <code class="text-xs bg-ads-surface border border-ads-border rounded px-1.5 py-0.5 font-mono">npm run db:export</code> すると、各月の記録が <code class="text-xs bg-ads-surface border border-ads-border rounded px-1.5 py-0.5 font-mono">content/koseki-monthly-meeting/*.md</code> に1ファイルずつ書き出されます。先頭にメタ情報（frontmatter）、本文にセクション見出し（##）が並びます。
+  </p>
+
+  <div class="bg-slate-900 rounded-xl overflow-hidden text-xs font-mono mb-6">
+    <div class="bg-slate-800 px-4 py-2 text-slate-400 flex items-center gap-2">
+      <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+      2026-05_総務.md
+    </div>
+    <div class="p-4 space-y-1 leading-relaxed">
+      <div class="text-slate-500">---</div>
+      <div><span class="text-emerald-400">status</span><span class="text-slate-400">:</span> <span class="text-amber-300">published</span></div>
+      <div><span class="text-emerald-400">heldOn</span><span class="text-slate-400">:</span> <span class="text-amber-300">2026-05-21</span></div>
+      <div><span class="text-emerald-400">theme</span><span class="text-slate-400">:</span> <span class="text-amber-300">総務</span></div>
+      <div><span class="text-emerald-400">folderSlug</span><span class="text-slate-400">:</span> <span class="text-amber-300">2026-05_総務</span></div>
+      <div class="text-slate-500">---</div>
+      <div class="text-slate-500 mt-2">## 事務連絡</div>
+      <div class="text-slate-300 pl-2">- 次回: 2026-06-18 ...</div>
+      <div class="text-slate-500 mt-2">## 協議</div>
+      <div class="text-slate-300 pl-2">- 除籍の読み方 ...</div>
+      <div class="text-slate-500 mt-2">## 研修</div>
+      <div class="text-slate-300 pl-2">なし</div>
+      <div class="text-slate-500 mt-2">## その他</div>
+      <div class="text-slate-300 pl-2">なし</div>
+      <div class="text-slate-500 mt-2">## 資料</div>
+      <div class="text-slate-300 pl-2">- [配布資料.pdf](https://drive.google.com/...)</div>
+    </div>
+  </div>
+
+  <div class="grid sm:grid-cols-3 gap-3">
+    <div class="bg-white border border-ads-border rounded-xl p-4 text-center">
+      <div class="text-2xl font-black text-emerald-600 mb-1">draft</div>
+      <div class="text-xs text-ads-muted">下書き。編集画面のみ表示</div>
+    </div>
+    <div class="flex items-center justify-center">
+      <i data-lucide="arrow-right" class="w-5 h-5 text-ads-accent"></i>
+    </div>
+    <div class="bg-white border border-ads-border rounded-xl p-4 text-center">
+      <div class="text-2xl font-black text-ads-accent-light mb-1">published</div>
+      <div class="text-xs text-ads-muted">公開。会員向け /koseki に表示</div>
+    </div>
+  </div>
+</section>
+
+
+<!-- SECTION 4: データフロー -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center">
+      <i data-lucide="workflow" class="w-5 h-5 text-cyan-600"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-900">データの流れ</h2>
+  </div>
+
+  <div class="space-y-3">
+    <div class="flex gap-3 items-start">
+      <div class="w-7 h-7 rounded-full bg-ads-accent text-white flex items-center justify-center text-xs font-bold shrink-0">1</div>
+      <div class="flex-1 bg-white border border-ads-border rounded-xl p-4">
+        <div class="font-bold text-slate-900 text-sm mb-1">保存（書記）</div>
+        <p class="text-xs text-ads-muted"><code class="font-mono">MeetingEditForm</code> → <code class="font-mono">saveMeetingAction</code> → Neon（<code class="font-mono">meetings</code> テーブル + セクション + 資料リンク）</p>
+      </div>
+    </div>
+    <div class="flex justify-center"><i data-lucide="arrow-down" class="w-4 h-4 text-ads-dim"></i></div>
+    <div class="flex gap-3 items-start">
+      <div class="w-7 h-7 rounded-full bg-ads-accent text-white flex items-center justify-center text-xs font-bold shrink-0">2</div>
+      <div class="flex-1 bg-white border border-ads-border rounded-xl p-4">
+        <div class="font-bold text-slate-900 text-sm mb-1">読み込み（会員）</div>
+        <p class="text-xs text-ads-muted"><code class="font-mono">loadMeetings()</code> が Neon から取得し、<code class="font-mono">KosekiWorkspace</code> が published のみを4ペインに表示</p>
+      </div>
+    </div>
+    <div class="flex justify-center"><i data-lucide="arrow-down" class="w-4 h-4 text-ads-dim"></i></div>
+    <div class="flex gap-3 items-start">
+      <div class="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shrink-0">3</div>
+      <div class="flex-1 bg-white border border-ads-border rounded-xl p-4">
+        <div class="font-bold text-slate-900 text-sm mb-1">バックアップ（運営コア）</div>
+        <p class="text-xs text-ads-muted"><code class="font-mono">npm run db:export</code> → <code class="font-mono">serializeMeetingMarkdown()</code> → Git の <code class="font-mono">content/koseki-monthly-meeting/*.md</code> に書き出し</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- SECTION 5: 旧見出しマイグレーション -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+      <i data-lucide="refresh-cw" class="w-5 h-5 text-amber-600"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-900">旧見出しの自動変換</h2>
+  </div>
+
+  <p class="text-sm text-ads-muted mb-6">
+    以前のテンプレート（論点・資料リンク等）で書かれたファイルも、読み込み時に新しい見出しへ自動マージされます。保存すると新形式で書き出されます。
+  </p>
+
+  <div class="bg-white border border-ads-border rounded-xl overflow-hidden">
+    <div class="grid grid-cols-2 bg-ads-surface border-b border-ads-border text-xs font-bold text-slate-700">
+      <div class="px-4 py-2.5">旧見出し</div>
+      <div class="px-4 py-2.5 border-l border-ads-border">新見出し（現行）</div>
+    </div>
+    <div class="divide-y divide-ads-border text-xs">
+      <div class="grid grid-cols-2"><div class="px-4 py-2 text-ads-muted">論点</div><div class="px-4 py-2 border-l border-ads-border font-medium text-slate-800">協議</div></div>
+      <div class="grid grid-cols-2"><div class="px-4 py-2 text-ads-muted">未解決・次回へ</div><div class="px-4 py-2 border-l border-ads-border font-medium text-slate-800">協議</div></div>
+      <div class="grid grid-cols-2"><div class="px-4 py-2 text-ads-muted">次回予定・宿題</div><div class="px-4 py-2 border-l border-ads-border font-medium text-slate-800">事務連絡</div></div>
+      <div class="grid grid-cols-2"><div class="px-4 py-2 text-ads-muted">その他メモ</div><div class="px-4 py-2 border-l border-ads-border font-medium text-slate-800">その他</div></div>
+      <div class="grid grid-cols-2"><div class="px-4 py-2 text-ads-muted">資料リンク</div><div class="px-4 py-2 border-l border-ads-border font-medium text-slate-800">資料</div></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- SECTION 6: 書記の運用フロー -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center">
+      <i data-lucide="calendar-check" class="w-5 h-5 text-rose-600"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-900">書記の運用フロー</h2>
+  </div>
+
+  <div class="flex flex-col md:flex-row gap-3 md:gap-2">
+    <div class="flex-1 bg-white border border-ads-border rounded-xl p-5 text-center">
+      <div class="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-3">
+        <span class="font-black text-amber-600">1</span>
+      </div>
+      <div class="font-bold text-slate-900 text-sm mb-1">開催日当日</div>
+      <p class="text-xs text-ads-muted">_template.md を複製。<br>status: draft で必須項目を埋める</p>
+    </div>
+    <div class="flex items-center justify-center md:w-8"><i data-lucide="chevron-right" class="w-5 h-5 text-ads-dim hidden md:block"></i><i data-lucide="chevron-down" class="w-5 h-5 text-ads-dim md:hidden"></i></div>
+    <div class="flex-1 bg-white border border-ads-border rounded-xl p-5 text-center">
+      <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-3">
+        <span class="font-black text-blue-600">2</span>
+      </div>
+      <div class="font-bold text-slate-900 text-sm mb-1">1週間以内</div>
+      <p class="text-xs text-ads-muted">清書して status: published に。<br>Web 編集画面から Neon に保存</p>
+    </div>
+    <div class="flex items-center justify-center md:w-8"><i data-lucide="chevron-right" class="w-5 h-5 text-ads-dim hidden md:block"></i><i data-lucide="chevron-down" class="w-5 h-5 text-ads-dim md:hidden"></i></div>
+    <div class="flex-1 bg-emerald-500/5 border-2 border-emerald-500/20 rounded-xl p-5 text-center">
+      <div class="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-3">
+        <span class="font-black text-emerald-600">3</span>
+      </div>
+      <div class="font-bold text-slate-900 text-sm mb-1">会員が閲覧</div>
+      <p class="text-xs text-ads-muted">/koseki に公開。<br>4ペインで過去の回次を参照</p>
+    </div>
+  </div>
+
+  <div class="mt-6 bg-ads-surface border border-ads-border rounded-xl p-5">
+    <div class="flex items-center gap-2 mb-3">
+      <i data-lucide="folder-tree" class="w-4 h-4 text-ads-accent"></i>
+      <span class="font-bold text-slate-900 text-sm">Google ドライブ側のフォルダ構成</span>
+    </div>
+    <div class="bg-slate-900 rounded-lg p-4 font-mono text-[11px] text-slate-300 leading-relaxed">
+      <div>月例会アーカイブ/</div>
+      <div class="pl-4">└── 2026-05_除籍の読み方/</div>
+      <div class="pl-8">└── 01_資料/ <span class="text-slate-500">← PDF・スキャン原本</span></div>
+    </div>
+    <p class="text-xs text-ads-muted mt-3">Markdown の「資料」セクションに [表示名](URL) 形式でリンクを貼る</p>
+  </div>
+</section>
+
+
+<!-- SECTION 7: ルートマップ -->
+<section class="mb-10">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-slate-500/10 flex items-center justify-center">
+      <i data-lucide="map" class="w-5 h-5 text-slate-600"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-900">URL 一覧</h2>
+  </div>
+
+  <div class="space-y-2">
+    <div class="flex items-center gap-3 bg-white border border-ads-border rounded-xl px-4 py-3">
+      <code class="text-xs font-mono text-ads-accent-light shrink-0">/koseki</code>
+      <span class="text-xs text-ads-muted">会員向けアーカイブ（4ペイン閲覧）</span>
+    </div>
+    <div class="flex items-center gap-3 bg-white border border-ads-border rounded-xl px-4 py-3">
+      <code class="text-xs font-mono text-ads-accent-light shrink-0">/koseki/edit/login</code>
+      <span class="text-xs text-ads-muted">編集者ログイン（パスワード認証）</span>
+    </div>
+    <div class="flex items-center gap-3 bg-white border border-ads-border rounded-xl px-4 py-3">
+      <code class="text-xs font-mono text-ads-accent-light shrink-0">/koseki/edit</code>
+      <span class="text-xs text-ads-muted">編集者向け一覧（draft 含む全件）</span>
+    </div>
+    <div class="flex items-center gap-3 bg-white border border-ads-border rounded-xl px-4 py-3">
+      <code class="text-xs font-mono text-ads-accent-light shrink-0">/koseki/edit/[slug]</code>
+      <span class="text-xs text-ads-muted">個別回次の編集フォーム</span>
+    </div>
+  </div>
+</section>
+
+
+<!-- SECTION 8: 工夫したポイント -->
+<section class="mb-10">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-ads-accent/10 flex items-center justify-center">
+      <i data-lucide="lightbulb" class="w-5 h-5 text-ads-accent-light"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-900">工夫したポイント</h2>
+  </div>
+
+  <div class="space-y-4">
+    <!-- 工夫① -->
+    <div class="bg-white border border-ads-border rounded-xl overflow-hidden">
+      <div class="bg-emerald-500/10 border-b border-emerald-500/15 px-5 py-3 flex items-center gap-2">
+        <span class="font-black text-emerald-700 text-sm">工夫 ①</span>
+        <span class="font-bold text-slate-900 text-sm">左 → 右の方向で、情報が細かくなる</span>
+      </div>
+      <div class="p-5">
+        <p class="text-sm text-ads-muted mb-5 leading-relaxed">
+          4ペインは<strong class="text-slate-700">「ざっくり選ぶ → 詳しく読む」</strong>の流れ。左から右へ進むほど、見ている情報の粒度が細かくなります。
+        </p>
+        <div class="flex flex-col md:flex-row items-stretch gap-2 md:gap-1">
+          <div class="flex-1 bg-ads-surface border border-ads-border rounded-lg p-3 text-center">
+            <div class="text-[10px] font-bold text-emerald-600 mb-1">ペイン1</div>
+            <div class="text-xs font-bold text-slate-800">いつ</div>
+            <div class="text-[10px] text-ads-muted mt-1">2026_05</div>
+          </div>
+          <div class="flex items-center justify-center md:w-6 shrink-0">
+            <i data-lucide="chevron-right" class="w-4 h-4 text-ads-dim hidden md:block"></i>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-ads-dim md:hidden"></i>
+          </div>
+          <div class="flex-1 bg-ads-surface border border-ads-border rounded-lg p-3 text-center">
+            <div class="text-[10px] font-bold text-blue-600 mb-1">ペイン2</div>
+            <div class="text-xs font-bold text-slate-800">何の話</div>
+            <div class="text-[10px] text-ads-muted mt-1">協議・研修…</div>
+          </div>
+          <div class="flex items-center justify-center md:w-6 shrink-0">
+            <i data-lucide="chevron-right" class="w-4 h-4 text-ads-dim hidden md:block"></i>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-ads-dim md:hidden"></i>
+          </div>
+          <div class="flex-1 bg-emerald-500/5 border-2 border-emerald-500/20 rounded-lg p-3 text-center">
+            <div class="text-[10px] font-bold text-violet-600 mb-1">ペイン3</div>
+            <div class="text-xs font-bold text-slate-800">本文</div>
+            <div class="text-[10px] text-ads-muted mt-1">箇条書きの詳細</div>
+          </div>
+          <div class="flex items-center justify-center md:w-6 shrink-0">
+            <i data-lucide="chevron-right" class="w-4 h-4 text-ads-dim hidden md:block"></i>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-ads-dim md:hidden"></i>
+          </div>
+          <div class="flex-1 bg-ads-surface border border-ads-border rounded-lg p-3 text-center">
+            <div class="text-[10px] font-bold text-amber-600 mb-1">ペイン4</div>
+            <div class="text-xs font-bold text-slate-800">資料</div>
+            <div class="text-[10px] text-ads-muted mt-1">PDFリンク</div>
+          </div>
+        </div>
+        <p class="text-xs text-ads-dim mt-4 text-center">月 → 次第 → 内容 → 資料　（粗い ──────────────→ 細かい）</p>
+      </div>
+    </div>
+
+    <!-- 工夫② -->
+    <div class="bg-white border border-ads-border rounded-xl overflow-hidden">
+      <div class="bg-blue-500/10 border-b border-blue-500/15 px-5 py-3 flex items-center gap-2">
+        <span class="font-black text-blue-700 text-sm">工夫 ②</span>
+        <span class="font-bold text-slate-900 text-sm">シンプルで見やすいようにした</span>
+      </div>
+      <div class="p-5">
+        <p class="text-sm text-ads-muted mb-4 leading-relaxed">
+          戸籍研究の記録を読むことに集中できるよう、装飾や機能を最小限に抑えました。
+        </p>
+        <ul class="grid sm:grid-cols-2 gap-2">
+          <li class="flex items-start gap-2 text-xs text-ads-muted bg-ads-surface rounded-lg px-3 py-2.5">
+            <i data-lucide="check" class="w-3.5 h-3.5 text-ads-positive mt-0.5 shrink-0"></i>
+            4ペイン固定で、迷わず「月 → 次第 → 本文」と辿れる
+          </li>
+          <li class="flex items-start gap-2 text-xs text-ads-muted bg-ads-surface rounded-lg px-3 py-2.5">
+            <i data-lucide="check" class="w-3.5 h-3.5 text-ads-positive mt-0.5 shrink-0"></i>
+            見出し名を統一（事務連絡・協議・研修・その他・資料）
+          </li>
+          <li class="flex items-start gap-2 text-xs text-ads-muted bg-ads-surface rounded-lg px-3 py-2.5">
+            <i data-lucide="check" class="w-3.5 h-3.5 text-ads-positive mt-0.5 shrink-0"></i>
+            本文は箇条書き中心。装飾の少ない読みやすい表示
+          </li>
+          <li class="flex items-start gap-2 text-xs text-ads-muted bg-ads-surface rounded-lg px-3 py-2.5">
+            <i data-lucide="check" class="w-3.5 h-3.5 text-ads-positive mt-0.5 shrink-0"></i>
+            資料は右ペインに常時表示。本文と資料を行き来しなくてよい
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- SECTION 9: 苦戦したポイント -->
+<section class="mb-10">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+      <i data-lucide="mountain" class="w-5 h-5 text-amber-600"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-900">苦戦したポイント</h2>
+  </div>
+
+  <div class="space-y-4">
+    <!-- 苦戦 ① -->
+    <div class="bg-white border border-ads-border rounded-xl overflow-hidden">
+      <div class="bg-amber-500/10 border-b border-amber-500/15 px-5 py-3 flex items-center gap-2">
+        <span class="font-black text-amber-700 text-sm">苦戦 ①</span>
+        <span class="font-bold text-slate-900 text-sm">Vercel にログインできなくなった</span>
+      </div>
+      <div class="p-5 space-y-4">
+        <p class="text-sm text-ads-muted leading-relaxed">
+          最初の1回は Vercel に入れてデプロイまで進められた。しかし、再度開こうとしたとき<strong class="text-slate-700">2段階認証に引っかかり</strong>、ダッシュボードに入れなくなった。
+        </p>
+        <div class="grid md:grid-cols-2 gap-3">
+          <div class="bg-rose-500/5 border border-rose-500/15 rounded-xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600"></i>
+              <span class="text-xs font-bold text-rose-700">当時の判断</span>
+            </div>
+            <p class="text-xs text-ads-muted leading-relaxed">Vercel での公開は<strong class="text-slate-700">不可能かもしれない</strong>と思った</p>
+          </div>
+          <div class="bg-emerald-500/5 border-2 border-emerald-500/20 rounded-xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+              <span class="text-xs font-bold text-emerald-700">解決</span>
+            </div>
+            <p class="text-xs text-ads-muted leading-relaxed"><strong class="text-slate-700">別アカウント</strong>で進め直し、公開まで到達できた</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 苦戦 ② -->
+    <div class="bg-white border border-ads-border rounded-xl overflow-hidden">
+      <div class="bg-amber-500/10 border-b border-amber-500/15 px-5 py-3 flex items-center gap-2">
+        <span class="font-black text-amber-700 text-sm">苦戦 ②</span>
+        <span class="font-bold text-slate-900 text-sm">環境変数をうまく登録できていない</span>
+      </div>
+      <div class="p-5 space-y-4">
+        <p class="text-sm text-ads-muted leading-relaxed">
+          本番で動かすには <code class="text-xs bg-ads-surface border border-ads-border rounded px-1.5 py-0.5 font-mono">DATABASE_URL</code> や <code class="text-xs bg-ads-surface border border-ads-border rounded px-1.5 py-0.5 font-mono">KOSEKI_EDIT_PASSWORD</code> などの環境変数が必要だが、Vercel の Settings に<strong class="text-slate-700">正しく登録できているか</strong>が最初は分からなかった。
+        </p>
+        <div class="bg-amber-500/5 border border-amber-500/15 rounded-xl p-4">
+          <p class="text-xs text-ads-muted leading-relaxed">
+            <strong class="text-slate-700">つまずき：</strong>変数名の打ち間違い・Production 環境への未設定・登録後の再デプロイ忘れなどで、編集画面に入れない・DB に接続できない状態が続いた。ローカルの <code class="font-mono text-[10px]">.env.local</code> と Vercel 側の値を突き合わせて、一つずつ確認する必要があった。
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+  </main>
+  <footer class="max-w-3xl mx-auto px-5 pb-10 pt-6 border-t border-ads-border/30">
+    <p class="text-xs text-ads-dim text-center">AI-Driven School の図解ツールで作成</p>
+  </footer>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>
