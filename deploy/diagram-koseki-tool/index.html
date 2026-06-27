@@ -158,8 +158,14 @@
   </div>
 </div>
 
-<p class="text-center text-ads-muted mb-10 md:mb-12">
+<p class="text-center text-ads-muted mb-4 md:mb-6">
   ここから先で、保存先・画面構成・データの流れ・運用フローをひとつずつ解説します。
+</p>
+<p class="text-center mb-10 md:mb-12">
+  <a href="#storage-reasons" class="inline-flex items-center gap-1.5 text-sm font-medium text-ads-accent-light hover:underline">
+    <i data-lucide="arrow-down" class="w-4 h-4"></i>
+    保存先と選んだ理由（DB・Neon）へジャンプ
+  </a>
 </p>
 
 
@@ -177,7 +183,7 @@
 
 
 <!-- SECTION: 保存するデータと保存先 -->
-<section class="mb-16 md:mb-20">
+<section id="storage" class="mb-16 md:mb-20">
   <div class="flex items-center gap-3 mb-6">
     <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
       <i data-lucide="hard-drive" class="w-5 h-5 text-indigo-600"></i>
@@ -188,6 +194,38 @@
   <p class="text-sm text-ads-muted mb-6 leading-relaxed">
     1か月分の記録は、<strong class="text-slate-700">テキスト（DB / Git）</strong>と<strong class="text-slate-700">原本ファイル（ドライブ）</strong>に分かれて保存します。書記は Web 編集画面から保存するだけで、Git や Markdown ファイルを直接触りません。
   </p>
+
+  <!-- 選んだ理由 -->
+  <div id="storage-reasons" class="mb-8 scroll-mt-6">
+    <h3 class="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+      <i data-lucide="help-circle" class="w-4 h-4 text-indigo-600"></i>
+      なぜ DB（Neon）を正本にしたか
+    </h3>
+    <div class="space-y-3">
+      <div class="bg-white border border-ads-border rounded-xl overflow-hidden">
+        <div class="bg-indigo-500/10 border-b border-indigo-500/15 px-5 py-3 flex items-center gap-2">
+          <span class="font-black text-indigo-700 text-sm">理由 ①</span>
+          <span class="font-bold text-slate-900 text-sm">複数人で使うには、データベースにするしかない</span>
+        </div>
+        <div class="p-5">
+          <p class="text-sm text-ads-muted leading-relaxed">
+            書記・運営・会員が同時に触るツールでは、<strong class="text-slate-700">1人の PC 上の Markdown ファイル</strong>を正本にすると、上書き・取りこぼし・公開タイミングのズレが起きやすい。Web から保存して、みんなが同じデータを読むには<strong class="text-slate-700">共有できる保存先＝データベース</strong>が必要だった。
+          </p>
+        </div>
+      </div>
+      <div class="bg-white border border-ads-border rounded-xl overflow-hidden">
+        <div class="bg-indigo-500/10 border-b border-indigo-500/15 px-5 py-3 flex items-center gap-2">
+          <span class="font-black text-indigo-700 text-sm">理由 ②</span>
+          <span class="font-bold text-slate-900 text-sm">Neon は Vercel との連携がしやすく、無料で始められる</span>
+        </div>
+        <div class="p-5">
+          <p class="text-sm text-ads-muted leading-relaxed">
+            アプリ本体を <strong class="text-slate-700">Vercel</strong> に載せる前提なら、PostgreSQL の <strong class="text-slate-700">Neon</strong> は接続設定や環境変数の連携が分かりやすく、<strong class="text-slate-700">無料枠から始められる</strong>。自前で DB サーバーを立てずに、書記運用に必要な「本番で共有保存」を実現できた。
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- 保存するデータ -->
   <div class="mb-6">
