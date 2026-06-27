@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { saveMeetingAction, type SaveMeetingState } from "@/app/koseki/edit/actions";
+import { MeetingContentPanes } from "@/components/koseki/MeetingContentPanes";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,7 +15,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { defaultContentHeadings } from "@/lib/koseki/schema";
 
@@ -32,10 +32,21 @@ export function MeetingCreateForm() {
     saveMeetingAction,
     initialState
   );
+  const [sections, setSections] = useState(defaultSections);
+  const [materials, setMaterials] = useState("");
+  const [heldOn, setHeldOn] = useState("");
+  const [theme, setTheme] = useState("");
 
   return (
-    <form action={formAction} className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8">
+    <form
+      action={formAction}
+      className="mx-auto flex h-svh min-h-0 w-full max-w-6xl flex-col gap-4 px-4 py-4"
+    >
       <input type="hidden" name="isCreate" value="1" />
+      {defaultContentHeadings.map((key) => (
+        <input key={key} type="hidden" name={`section_${key}`} value={sections[key] ?? ""} />
+      ))}
+      <input type="hidden" name="section_資料" value={materials} />
 
       <Card>
         <CardHeader>
@@ -68,10 +79,24 @@ export function MeetingCreateForm() {
             </select>
           </Field>
           <Field label="開催日" htmlFor="heldOn">
-            <Input id="heldOn" name="heldOn" type="date" required />
+            <Input
+              id="heldOn"
+              name="heldOn"
+              type="date"
+              value={heldOn}
+              onChange={(e) => setHeldOn(e.target.value)}
+              required
+            />
           </Field>
           <Field label="テーマ（短い）" htmlFor="theme">
-            <Input id="theme" name="theme" placeholder="除籍の読み方" required />
+            <Input
+              id="theme"
+              name="theme"
+              placeholder="除籍の読み方"
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+              required
+            />
           </Field>
           <Field label="フォルダ名（folderSlug）" htmlFor="folderSlug">
             <Input
@@ -84,36 +109,16 @@ export function MeetingCreateForm() {
         </CardContent>
       </Card>
 
-      {defaultContentHeadings.map((key) => (
-        <Card key={key}>
-          <CardHeader>
-            <CardTitle>{key}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              name={`section_${key}`}
-              defaultValue={defaultSections[key]}
-              rows={key === "事務連絡" ? 4 : 3}
-              className="font-mono text-sm"
-            />
-          </CardContent>
-        </Card>
-      ))}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>資料</CardTitle>
-          <CardDescription>[表示名](URL) 形式</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            name="section_資料"
-            placeholder="- [資料名](https://drive.google.com/...)"
-            rows={4}
-            className="font-mono text-sm"
-          />
-        </CardContent>
-      </Card>
+      <MeetingContentPanes
+        sections={sections}
+        onSectionChange={(heading, value) =>
+          setSections((prev) => ({ ...prev, [heading]: value }))
+        }
+        materials={materials}
+        onMaterialsChange={setMaterials}
+        theme={theme || undefined}
+        heldOn={heldOn || undefined}
+      />
 
       {state.message ? (
         <p

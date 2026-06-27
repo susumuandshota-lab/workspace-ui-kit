@@ -10,6 +10,7 @@ import {
   KOSEKI_EDITOR_COOKIE,
 } from "@/lib/koseki/auth";
 import { findUnsafeMaterialLinks } from "@/lib/koseki/markdown";
+import { kosekiEditMeetingHref } from "@/lib/koseki/slug-url";
 import { getKosekiDataSource, loadMeeting, saveMeeting } from "@/lib/koseki/meetings";
 import {
   defaultContentHeadings,
@@ -115,7 +116,7 @@ export async function saveMeetingAction(
     });
     revalidatePath("/koseki");
     revalidatePath("/koseki/edit");
-    revalidatePath(`/koseki/edit/${slug}`);
+    revalidatePath(kosekiEditMeetingHref(slug));
 
     const actionLabel = isCreate ? "作成" : "保存";
     const gitNote = mirroredToFile

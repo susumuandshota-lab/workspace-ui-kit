@@ -10,5 +10,6 @@ export default function KosekiLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <div className="h-svh overflow-hidden bg-background">{children}</div>;
+  // 4ペイン閲覧は KosekiWorkspace 側で h-svh を管理。編集画面は縦スクロールが必要。
+  return <div className="min-h-svh bg-background">{children}</div>;
 }

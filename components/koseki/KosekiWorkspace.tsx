@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { KosekiHeader } from "@/components/koseki/KosekiHeader";
+import { MeetingDetailPaneBody } from "@/components/koseki/MeetingDetailContent";
 import { MonthMeetingCard } from "@/components/koseki/MonthMeetingCard";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -16,12 +17,16 @@ import {
 
 type KosekiWorkspaceProps = {
   meetings: MeetingRecord[];
+  initialSlug?: string;
 };
 
-export function KosekiWorkspace({ meetings }: KosekiWorkspaceProps) {
-  const [selectedSlug, setSelectedSlug] = useState<string | null>(
-    meetings[0]?.slug ?? null
-  );
+export function KosekiWorkspace({ meetings, initialSlug }: KosekiWorkspaceProps) {
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(() => {
+    if (initialSlug && meetings.some((m) => m.slug === initialSlug)) {
+      return initialSlug;
+    }
+    return meetings[0]?.slug ?? null;
+  });
   const [selectedHeading, setSelectedHeading] = useState<string | null>(null);
 
   const selectedMeeting = useMemo(
@@ -178,41 +183,24 @@ function DetailPane({
   heading: string | null;
   content: string;
 }) {
-  const bullets = parseBulletLines(content);
-  const paragraphs = content
-    .split(/\n\n+/)
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0 && !p.startsWith("- "));
-
   return (
     <section className="min-w-0 flex-1 bg-canvas">
-      <div className="border-b border-border px-6 py-3">
-        <h2 className="font-heading text-sm">内容</h2>
+      <div className="border-b border-border bg-background px-6 py-4">
+        <h2 className="font-heading text-sm text-muted-foreground">内容</h2>
         {meeting && heading ? (
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium">{heading}</span>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <p className="font-heading text-lg leading-snug">{heading}</p>
             <Badge variant="secondary">{meeting.frontmatter.heldOn}</Badge>
+            <Badge variant="outline">{meeting.frontmatter.theme}</Badge>
           </div>
         ) : null}
       </div>
-      <ScrollArea className="h-[calc(100%-3.5rem)]">
-        <div className="mx-auto flex max-w-2xl flex-col gap-4 px-6 py-6">
+      <ScrollArea className="h-[calc(100%-4.5rem)]">
+        <div className="mx-auto flex max-w-3xl flex-col px-6 py-6">
           {!meeting || !heading ? (
-            <p className="text-sm text-muted-foreground">次第を選択してください</p>
-          ) : bullets.length > 0 ? (
-            <ul className="flex list-disc flex-col gap-2 pl-5 text-sm">
-              {bullets.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          ) : paragraphs.length > 0 ? (
-            paragraphs.map((p) => (
-              <p key={p} className="text-sm leading-relaxed">
-                {p}
-              </p>
-            ))
+            <p className="text-muted-foreground">次第を選択してください</p>
           ) : (
-            <p className="text-sm text-muted-foreground">（内容なし）</p>
+            <MeetingDetailPaneBody content={content} />
           )}
         </div>
       </ScrollArea>

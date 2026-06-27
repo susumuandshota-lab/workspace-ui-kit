@@ -8,6 +8,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { MeetingRecord } from "@/lib/koseki/schema";
+import {
+  kosekiArchiveMeetingHref,
+  kosekiEditMeetingHref,
+} from "@/lib/koseki/slug-url";
 
 type MeetingListProps = {
   meetings: MeetingRecord[];
@@ -15,6 +19,13 @@ type MeetingListProps = {
   showStatus?: boolean;
   emptyMessage?: string;
 };
+
+function meetingHref(basePath: string, slug: string): string {
+  if (basePath === "/koseki/edit" || basePath.endsWith("/edit")) {
+    return kosekiEditMeetingHref(slug);
+  }
+  return kosekiArchiveMeetingHref(slug);
+}
 
 export function MeetingList({
   meetings,
@@ -34,7 +45,7 @@ export function MeetingList({
     <ul className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-4 py-8">
       {meetings.map((meeting) => (
         <li key={meeting.slug}>
-          <Link href={`${basePath}/${meeting.slug}`}>
+          <Link href={meetingHref(basePath, meeting.slug)}>
             <Card className="transition-colors hover:bg-muted/30">
               <CardHeader>
                 <div className="flex flex-wrap items-center gap-2">

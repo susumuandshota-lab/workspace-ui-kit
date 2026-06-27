@@ -1,19 +1,14 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
-import { MeetingEditForm } from "@/components/koseki/MeetingEditForm";
-import { loadMeeting } from "@/lib/koseki/meetings";
+import { normalizeMeetingSlugFromParam } from "@/lib/koseki/slug-url";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export default async function KosekiEditMeetingPage({ params }: PageProps) {
+/** 旧 URL (/koseki/edit/2026-06_テーマ) をクエリ形式へ転送 */
+export default async function KosekiEditMeetingLegacyPage({ params }: PageProps) {
   const { slug } = await params;
-
-  try {
-    const meeting = await loadMeeting(slug);
-    return <MeetingEditForm meeting={meeting} />;
-  } catch {
-    notFound();
-  }
+  const decoded = normalizeMeetingSlugFromParam(slug);
+  redirect(`/koseki/edit/meeting?slug=${encodeURIComponent(decoded)}`);
 }
